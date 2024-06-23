@@ -1,0 +1,89 @@
+todays agenda:
+creating the dimensional model in snowflake
+overview of the aws redshift
+Q & A
+==============================
+for data projects if it small - medium we usually go for the either cloud platform or any specific platform like snowflake
+
+snowflake = cloud either aws/gcp/azure
+pyspark = stand alone as well as with aws/gcp/azure
+
+why we need to go with hosted/cloud solutions:
+
+1.you dont need to take care about Hardware infrastracture 
+ the service = taking care by the provider
+
+2.Capex (Capital expenditure)
+on premises: he has buy the hardware ( total upfront amount)
+hire System admin, Network, security team for physical thread
+environment: cooling system, power backup
+
+3.Opex ( Operation expenditure)
+we wil pay the amount for the specific resource (ram,processor and storage) it inlucde networking
+
+per hour 
+use it first and pay us later 
+
+Signup and verify our bank through credit or debit card
+lot of trail version also
+
+free or community edition/service
+
+snowflake
+===================
+
+modern applicaitons we will get 3 approach
+
+1.Issuing command in web interface /console
+2.CLI = we will install a utility in our laptop and we connect to the server and we issue the commands
+3.web interface but we are using wizard
+=================================================
+
+we are creating the staging tables
+we are remodeling it ( for faster query)
+we are creating the gold layer ( normal views or materilized/standard tables ) 
+
+these objects are working as datamart and available for business intelligence
+
+=========================================================
+Activity on snowflake
+
+after creating the account, we can create new notebook sheet and rename it
+
+we create new database
+use database
+we are creating the schema:
+
+What is schema:
+Its logical container for database objets (table, view, materlized) indexes are not allowed snowflake. 
+
+It helps us to organized data and implementing of security
+=============================================================
+
+After adding demo data in staging area/table
+
+we have two options
+
+1)use the same normalised model (inmon method)
+2)Kimball method which ask us to create dimensional model 
+recreating the model for faster query processing
+
+Why we need to dimensional modeling:
+===============--
+1.Simplicity = It allows modeling to understand and navigate the data for business users because they reflect real world concept and relationship
+
+2.Performance: Queries against dimensional model typical perform very well due to the denomalise structure and pre-aggregated data
+
+
+so lets create dim and fact tables:
+=========================================
+Fact table store quantity/numeric values
+dim store/hold = descriptive /contextual information
+
+last step:
+=============
+
+creating the datamart (subset of the main dataset)
+we can regular table or view or materlized view (it store query physical) 
+but in snowflake (materlized view support query from single table)
+

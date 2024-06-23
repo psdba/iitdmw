@@ -1,0 +1,196 @@
+-- Step 1: Create the Database and Schemas
+
+CREATE DATABASE RetailDB;
+
+USE DATABASE RetailDB;
+
+CREATE SCHEMA Staging;
+CREATE SCHEMA StarSchema;
+CREATE SCHEMA DataMart;
+
+-- Step 2: Create Tables in the Staging Schema
+
+USE SCHEMA Staging;
+
+CREATE TABLE Staging_Customers (
+    CustomerID INT,
+    FirstName STRING,
+    LastName STRING,
+    Email STRING,
+    Address STRING,
+    City STRING,
+    State STRING,
+    ZipCode STRING
+);
+
+CREATE TABLE Staging_Products (
+    ProductID INT,
+    ProductName STRING,
+    Category STRING,
+    Price DECIMAL(10, 2)
+);
+
+CREATE TABLE Staging_Orders (
+    OrderID INT,
+    CustomerID INT,
+    OrderDate DATE,
+    TotalAmount DECIMAL(10, 2)
+);
+
+CREATE TABLE Staging_OrderDetails (
+    OrderDetailID INT,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT,
+    UnitPrice DECIMAL(10, 2)
+);
+
+-- Step 3: Insert Demo Data into Staging Tables
+
+INSERT INTO Staging_Customers VALUES 
+(1, 'John', 'Doe', 'john.doe@example.com', '123 Elm St', 'Springfield', 'IL', '62701'),
+(2, 'Jane', 'Smith', 'jane.smith@example.com', '456 Oak St', 'Lincoln', 'NE', '68501'),
+(3, 'Alice', 'Johnson', 'alice.johnson@example.com', '789 Pine St', 'Columbus', 'OH', '43201');
+
+INSERT INTO Staging_Products VALUES 
+(1, 'Laptop', 'Electronics', 999.99),
+(2, 'Smartphone', 'Electronics', 499.99),
+(3, 'Tablet', 'Electronics', 299.99);
+
+INSERT INTO Staging_Orders VALUES 
+(1, 1, '2024-06-01', 1299.98),
+(2, 2, '2024-06-02', 499.99),
+(3, 3, '2024-06-03', 299.99);
+
+INSERT INTO Staging_OrderDetails VALUES 
+(1, 1, 1, 1, 999.99),
+(2, 1, 2, 1, 299.99),
+(3, 2, 2, 1, 499.99),
+(4, 3, 3, 1, 299.99);
+
+-- Step 4: Create the Star Schema
+
+USE SCHEMA StarSchema;
+
+-- Create Dimension Tables
+
+CREATE TABLE Dim_Customers (
+    CustomerID INT PRIMARY KEY,
+    FirstName STRING,
+    LastName STRING,
+    Email STRING,
+    Address STRING,
+    City STRING,
+    State STRING,
+    ZipCode STRING
+);
+
+CREATE TABLE Dim_Products (
+    ProductID INT PRIMARY KEY,
+    ProductName STRING,
+    Category STRING,
+    Price DECIMAL(10, 2)
+);
+
+CREATE TABLE Dim_Date (
+    DateID DATE PRIMARY KEY,
+    Day INT,
+    Month INT,
+    Year INT,
+    DayOfWeek STRING,
+    MonthName STRING
+);
+
+-- Create Fact Tables
+
+CREATE TABLE Fact_Orders (
+    OrderID INT PRIMARY KEY,
+    CustomerID INT,
+    OrderDate DATE,
+    TotalAmount DECIMAL(10, 2)
+);
+
+CREATE TABLE Fact_OrderDetails (
+    OrderDetailID INT PRIMARY KEY,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT,
+    UnitPrice DECIMAL(10, 2)
+);
+
+-- Step 5: Populate the Dimension Tables
+
+INSERT INTO StarSchema.Dim_Customers
+SELECT DISTINCT CustomerID, FirstName, LastName, Email, Address, City, State, ZipCode
+FROM Staging.Staging_Customers;
+
+INSERT INTO StarSchema.Dim_Products
+SELECT DISTINCT ProductID, ProductName, Category, Price
+FROM Staging.Staging_Products;
+
+-- Populate the Dim_Date table with a range of dates (example for one year)
+INSERT INTO StarSchema.Dim_Date
+SELECT
+    DISTINCT OrderDate AS DateID,
+    DAY(OrderDate) AS Day,
+    MONTH(OrderDate) AS Month,
+    YEAR(OrderDate) AS Year,
+    DAYNAME(OrderDate) AS DayOfWeek,
+    MONTHNAME(OrderDate) AS MonthName
+FROM Staging.Staging_Orders;
+
+-- Step 6: Populate the Fact Tables
+
+INSERT INTO StarSchema.Fact_Orders
+SELECT DISTINCT OrderID, CustomerID, OrderDate, TotalAmount
+FROM Staging.Staging_Orders;
+
+INSERT INTO StarSchema.Fact_OrderDetails
+SELECT DISTINCT OrderDetailID, OrderID, ProductID, Quantity, UnitPrice
+FROM Staging.Staging_OrderDetails;
+
+-- Step 7: Create Data Mart Views
+
+USE SCHEMA DataMart;
+
+CREATE VIEW CustomerOrders AS
+SELECT
+    c.CustomerID,
+    c.FirstName,
+    c.LastName,
+    c.Email,
+    o.OrderID,
+    o.OrderDate,
+    o.TotalAmount
+FROM StarSchema.Dim_Customers c
+JOIN StarSchema.Fact_Orders o ON c.CustomerID = o.CustomerID;
+
+CREATE VIEW ProductSales AS
+SELECT
+    p.ProductID,
+    p.ProductName,
+    p.Category,
+    SUM(od.Quantity) AS TotalQuantity,
+    SUM(od.UnitPrice * od.Quantity) AS TotalSales
+FROM StarSchema.Dim_Products p
+JOIN StarSchema.Fact_OrderDetails od ON p.ProductID = od.ProductID
+GROUP BY p.ProductID, p.ProductName, p.Category;
+
+-- Step 8: Querying the Data Mart
+
+-- Example query to get customer order details
+SELECT * FROM DataMart.CustomerOrders WHERE CustomerID = 1;
+
+-- Example query to get product sales summary
+SELECT * FROM DataMart.ProductSales ORDER BY TotalSales DESC;
+
+==============================================
+
+Deleting the database:
+
+-- Login to your Snowflake account
+-- Use the context of your desired account and role
+-- USE ROLE ACCOUNTADMIN;
+
+-- Drop the database if it exists
+DROP DATABASE IF EXISTS RetailDB;
